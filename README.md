@@ -24,7 +24,7 @@ Concluído (Fase de Refatoração e Preparação para Arquitetura Web - PI2).
 - `com.technova.ui`: Interface gráfica `TechNovaDesktopUI` enxuta e desacoplada.
 - `com.technova.app`: Classe `TechNovaApp` com suíte de testes automatizados no método `main()`.
 
-## Como Executar os Testes no `main()`
-1. Abra o projeto no **Apache NetBeans** (ou execute via Maven com `mvn compile exec:java`).
-2. Execute a classe principal `com.technova.app.TechNovaApp`.
-3. Para abrir a interface gráfica Swing após os testes, passe o argumento `--ui`.
+## Testes
+- Execute os testes unitários JUnit 5 com `mvn test`.
+- Consulte o [plano de testes](docs/plano_testes.md) para os cenários do núcleo de negócio, da persistência e dos fluxos web previstos.
+- A classe `com.technova.app.TechNovaApp` também contém verificações manuais executáveis via `mvn compile exec:java`; use `--ui` para abrir a interface Swing após a execução.
