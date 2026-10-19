@@ -1,0 +1,30 @@
+# TechNova Soluções - Projeto Refatorado (SOLID) para Reutilização Web
+
+## Status do Projeto
+Concluído (Fase de Refatoração e Preparação para Arquitetura Web - PI2).
+
+## Tecnologias e Padrões Aplicados
+- **Java 17** (Projeto Maven / Apache NetBeans)
+- **Princípios SOLID** (SRP, OCP, LSP, ISP, DIP)
+- **Padrões de Projeto**: Repository/DAO, Dependency Injection, Strategy (Validação), Factory (`ConnectionFactory`)
+- **MySQL / JDBC** (desacoplado via interfaces de repositório)
+- **Java Swing** (camada visual desacoplada das regras de negócio)
+
+## Autor
+- Gusthavo Gassen
+
+## Estrutura de Pacotes
+- `com.technova.domain`: Entidades de negócio (`Usuario`, `Cliente`, `Produto`, `Pedido`, `ItemPedido`) e enums (`PerfilUsuario`, `StatusPedido`) enriquecidos com regras de domínio.
+- `com.technova.validation`: Validadores dedicados (`Validador<T>`, `ProdutoValidator`, `ClienteValidator`, `PedidoValidator`).
+- `com.technova.repository`: Interfaces segregadas (`ProdutoRepository`, `ClienteRepository`, `PedidoRepository`, `UsuarioRepository`).
+- `com.technova.repository.memory`: Implementações em memória para execução de testes independentes de banco de dados.
+- `com.technova.repository.mysql`: Implementações JDBC/MySQL refatoradas com `ConnectionFactory`.
+- `com.technova.service`: Camada de serviços de negócio reutilizável no sistema Web (`AutenticacaoService`, `ProdutoService`, `ClienteService`, `CarrinhoService`, `PedidoService`).
+- `com.technova.exception`: Exceções de domínio e persistência (`RegraNegocioException`, `ValidacaoException`, `PersistenciaException`).
+- `com.technova.ui`: Interface gráfica `TechNovaDesktopUI` enxuta e desacoplada.
+- `com.technova.app`: Classe `TechNovaApp` com suíte de testes automatizados no método `main()`.
+
+## Como Executar os Testes no `main()`
+1. Abra o projeto no **Apache NetBeans** (ou execute via Maven com `mvn compile exec:java`).
+2. Execute a classe principal `com.technova.app.TechNovaApp`.
+3. Para abrir a interface gráfica Swing após os testes, passe o argumento `--ui`.
