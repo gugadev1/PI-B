@@ -2,6 +2,7 @@
 
 **Autor:** Gusthavo Gassen  
 **Projeto Base (Desktop Anterior):** [https://github.com/gugadev1/PI2](https://github.com/gugadev1/PI2)  
+**Novo Repositório Refatorado (GitHub):** [https://github.com/gugadev1/PI-B](https://github.com/gugadev1/PI-B)  
 **Objetivo:** Revisar, refatorar e desacoplar as regras de negócio da interface gráfica Java Swing, aplicando os princípios **SOLID** e padrões de projeto para permitir o reaproveitamento integral do núcleo de negócios na construção do novo Sistema Web.
 
 ---
