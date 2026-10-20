@@ -44,7 +44,7 @@ public class PedidoRepositoryMySQL implements PedidoRepository {
             try {
                 int idPedido = inserirCabecalhoPedido(conexao, pedido);
                 pedido.setId(idPedido);
-                inserirItensEBaixarEstoque(conexao, idPedido, pedido.getItens());
+                inserirItensPedido(conexao, idPedido, pedido.getItens());
                 conexao.commit();
                 return pedido;
             } catch (SQLException e) {
@@ -102,6 +102,20 @@ public class PedidoRepositoryMySQL implements PedidoRepository {
         }
     }
 
+    @Override
+    public boolean atualizarStatus(int idPedido, StatusPedido statusAtual, StatusPedido novoStatus) {
+        String sql = "UPDATE pedidos SET status = ? WHERE id = ? AND status = ?";
+        try (Connection conexao = connectionFactory.obterConexao();
+             PreparedStatement ps = conexao.prepareStatement(sql)) {
+            ps.setString(1, novoStatus.name());
+            ps.setInt(2, idPedido);
+            ps.setString(3, statusAtual.name());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new PersistenciaException("Erro ao atualizar status do pedido.", e);
+        }
+    }
+
     private int inserirCabecalhoPedido(Connection conexao, Pedido pedido) throws SQLException {
         String sqlPedido = "INSERT INTO pedidos (cliente_id, usuario_responsavel_id, status, total) VALUES (?, ?, ?, ?)";
         try (PreparedStatement psPedido = conexao.prepareStatement(sqlPedido, Statement.RETURN_GENERATED_KEYS)) {
@@ -123,14 +137,10 @@ public class PedidoRepositoryMySQL implements PedidoRepository {
         }
     }
 
-    private void inserirItensEBaixarEstoque(Connection conexao, int idPedido, List<ItemPedido> itens) throws SQLException {
+    private void inserirItensPedido(Connection conexao, int idPedido, List<ItemPedido> itens) throws SQLException {
         String sqlItem = "INSERT INTO itens_pedido (pedido_id, produto_id, quantidade, preco_unitario, subtotal) "
                 + "VALUES (?, ?, ?, ?, ?)";
-        String sqlBaixaEstoque = "UPDATE produtos SET quantidade_estoque = quantidade_estoque - ? "
-                + "WHERE id = ? AND quantidade_estoque >= ?";
-
-        try (PreparedStatement psItem = conexao.prepareStatement(sqlItem);
-             PreparedStatement psBaixaEstoque = conexao.prepareStatement(sqlBaixaEstoque)) {
+        try (PreparedStatement psItem = conexao.prepareStatement(sqlItem)) {
 
             for (ItemPedido item : itens) {
                 psItem.setInt(1, idPedido);
@@ -140,19 +150,9 @@ public class PedidoRepositoryMySQL implements PedidoRepository {
                 psItem.setDouble(5, item.getSubtotal());
                 psItem.addBatch();
 
-                psBaixaEstoque.setInt(1, item.getQuantidade());
-                psBaixaEstoque.setInt(2, item.getProduto().getId());
-                psBaixaEstoque.setInt(3, item.getQuantidade());
-                psBaixaEstoque.addBatch();
             }
 
             psItem.executeBatch();
-            int[] resultadosBaixa = psBaixaEstoque.executeBatch();
-            for (int resultado : resultadosBaixa) {
-                if (resultado == 0 || resultado == Statement.EXECUTE_FAILED) {
-                    throw new SQLException("Falha ao baixar estoque de um ou mais produtos.");
-                }
-            }
         }
     }
 

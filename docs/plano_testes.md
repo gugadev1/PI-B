@@ -1,36 +1,42 @@
 # Plano de Testes — TechNova
 
-## Objetivo
+## Objetivo e escopo
 
-Verificar as regras de negócio do núcleo TechNova e orientar a validação dos principais fluxos da interface web prevista para reutilizar esses serviços. O repositório contém atualmente o núcleo Java e uma interface desktop Swing, mas ainda não contém uma camada web; os testes HTTP e de navegador abaixo são critérios para quando essa camada for implementada.
+Verificar as regras do núcleo, a API Spring MVC, o controle de acesso por perfil, a integração JDBC com banco relacional e os fluxos principais da interface web. A suíte automatizada usa H2 em memória para não depender de serviços externos; a aplicação local usa H2 em arquivo.
 
-## Escopo e estratégia
+## Estratégia e dados
 
-- **Testes unitários (JUnit 5):** regras isoladas de domínio e serviços, sem banco de dados. Os repositórios em memória podem ser usados para testar a integração entre serviços.
-- **Testes de integração:** validar persistência com MySQL, incluindo transações de pedidos e atualização de estoque. Não fazem parte da suíte unitária.
-- **Testes de aceitação web:** executar os fluxos pelo navegador quando houver interface/controladores web, verificando também mensagens de validação e permissões.
-- **Dados de teste:** usar usuários com perfis `ADMINISTRADOR`, `FUNCIONARIO` e `CLIENTE`, produtos ativos/inativos com estoque controlado e clientes válidos/inválidos. Restaurar os dados entre cenários.
+- **Unitários:** JUnit 5 para regras do carrinho e serviços independentes de banco.
+- **Integração:** Spring Boot Test/MockMvc e H2 para requisições HTTP, sessão, persistência, permissões, estoque e transações.
+- **Aceitação web:** executar a aplicação, abrir a página servida pelo Spring MVC e verificar os fluxos de login, catálogo, carrinho, pedido e cancelamento.
+- Os testes de integração recriam os registros de usuários, clientes e produtos em cada caso. O acesso MySQL preexistente não é exercitado pela suíte automatizada; o perfil funcional integrado e documentado nesta etapa é H2.
 
-## Casos de teste
+## Casos
 
-| ID | Requisito/fluxo | Tipo | Cenário e resultado esperado |
+| ID | Requisito | Cenário e resultado esperado | Cobertura |
 | --- | --- | --- | --- |
-| CT01 | RF001 — Autenticação | Integração de serviço / aceitação web | Informar e-mail e senha válidos: autenticar o usuário e disponibilizar o sistema conforme o perfil. Credenciais inválidas ou campos vazios: rejeitar o login e informar erro sem iniciar sessão. |
-| CT02 | RF002 — Cadastro e manutenção de produtos | Integração de serviço / aceitação web | Cadastrar e atualizar um produto com dados válidos: persistir os dados e exibi-los na listagem. Nome/categoria ausentes, preço ou estoque negativos: rejeitar a operação com validação, sem persistir dados inválidos. |
-| CT03 | RF003 — Cadastro de clientes | Integração de serviço / aceitação web | Cadastrar cliente com e-mail válido: atribuir identificador e exibir o registro. E-mail malformado ou campos obrigatórios ausentes: rejeitar o cadastro. |
-| CT04 | RF004 — Carrinho e totalização | Unitário (JUnit) | Adicionar o mesmo produto em operações separadas: manter uma linha com quantidades consolidadas e total igual à soma dos subtotais. A tentativa de ultrapassar o estoque deve lançar `RegraNegocioException` sem alterar o carrinho. |
-| CT05 | RF005 — Criação de pedido e estoque | Integração / aceitação web | Confirmar carrinho válido: criar pedido em `EM_PROCESSAMENTO`, calcular seu total e baixar do estoque as quantidades pedidas. Carrinho vazio ou estoque insuficiente: rejeitar a criação sem concluir o pedido. |
-| CT06 | RF006 — Permissões e transições de status | Integração de serviço / aceitação web | Administrador pode realizar transição permitida, como `EM_PROCESSAMENTO` para `APROVADO`. Cliente não pode alterar status; transições não permitidas devem ser rejeitadas sem modificar o pedido. |
-| CT07 | RF007 — Cancelamento e estorno | Integração de serviço / aceitação web | Cancelar pedido em estado que permita cancelamento: definir `CANCELADO` e devolver ao estoque as quantidades dos itens. A operação deve manter pedido e estoque consistentes. |
-| CT08 | Persistência MySQL | Integração | Com banco disponível, salvar e consultar produtos, clientes e pedidos; ao ocorrer falha de persistência, reportar erro e não indicar sucesso ao usuário. |
-| CT09 | Sessão e navegação web | Aceitação web (camada futura) | Após login, acessar produtos e pedidos conforme o perfil; ao sair, encerrar sessão e exigir autenticação para páginas protegidas. |
+| CT01 | RF001 — Autenticação | Credenciais válidas iniciam sessão com perfil; senha inválida retorna 401; rotas protegidas sem sessão retornam 401. | `TechNovaApiControllerTest.loginValidaCredenciaisEExigeSessaoParaRecursosProtegidos` |
+| CT02 | RF002 — Produtos | Equipe cadastra e edita produto; dados inválidos retornam 400; ID inexistente retorna 404; cliente não acessa manutenção; funcionário não ativa/inativa produto. | `TechNovaApiControllerTest.permiteGerenciarCatalogoPorPerfilERejeitaDadosInvalidos` |
+| CT03 | RF003 — Clientes | Equipe cadastra cliente com senha hash e e-mail válido; o cliente consegue autenticar; e-mail inválido retorna 400. | `TechNovaApiControllerTest.cadastraClienteComSenhaHasheadaEValidaEmail` |
+| CT04 | RF004 — Carrinho e totalização | Repetir produto consolida quantidade e total; exceder estoque rejeita a operação sem alterar o carrinho. | `CarrinhoServiceTest` |
+| CT05 | RF005 — Pedido e estoque | Pedido válido persiste com status inicial, total correto e baixa de estoque; tentativa acima do estoque falha sem mudar o estoque. | `TechNovaApiControllerTest.criaPedidoComEstoqueTransacionalEFiltraPedidosDoCliente` |
+| CT06 | RF006 — Permissões e transições | Cliente não cria pedido em nome de terceiro; funcionário não altera status; administrador aprova pedido; transição a partir de pedido cancelado é rejeitada. | `TechNovaApiControllerTest.criaPedidoComEstoqueTransacionalEFiltraPedidosDoCliente` |
+| CT07 | RF007 — Cancelamento e estorno | Administrador cancela pedido elegível, recebe status `CANCELADO` e estoque retorna ao valor inicial. | `TechNovaApiControllerTest.criaPedidoComEstoqueTransacionalEFiltraPedidosDoCliente` |
+| CT08 | Persistência relacional | H2 grava e consulta usuários, produtos, clientes, pedidos e itens; baixa e estorno são confirmados por nova consulta JDBC. | Testes Spring MVC/JDBC em `TechNovaApiControllerTest` |
+| CT09 | Sessão e navegação | Página e JavaScript são servidos pelo Spring; o login mantém sessão; cliente vê apenas o próprio histórico; logout encerra a sessão. | Teste de navegador e `TechNovaApiControllerTest` |
 
-## Critérios de aprovação
+## Execução
 
-- Todos os testes unitários e de integração aplicáveis passam; não há alterações de estado após operações rejeitadas.
-- O pedido e o estoque permanecem consistentes após confirmação ou cancelamento.
-- A interface web apresenta resultado coerente com a operação, bloqueia acessos não autorizados e não expõe mensagens técnicas de persistência.
+Na raiz do projeto:
 
-## Execução dos testes unitários
+```powershell
+mvn clean verify
+```
 
-Na raiz do projeto, executar `mvn test`. Os testes JUnit ficam em `src/test/java`; nenhum teste unitário exige conexão com MySQL.
+Para iniciar o sistema web:
+
+```powershell
+mvn spring-boot:run
+```
+
+Consulte `docs/evidencias_testes.md` para comandos realmente executados, saídas e o registro de bugtracking associado a uma falha reproduzível.

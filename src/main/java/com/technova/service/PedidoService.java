@@ -11,18 +11,23 @@ import com.technova.exception.ValidacaoException;
 import com.technova.repository.PedidoRepository;
 import com.technova.repository.ProdutoRepository;
 import com.technova.validation.PedidoValidator;
+import java.util.ArrayList;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Servico de regras de negocio para Pedidos (RF004, RF005, RF006 e RF007).
  * Refatorado com Injecao de Dependencia (DIP), validacao dedicada (SRP) e controle de transicao de status.
  */
+@Service
 public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
     private final ProdutoRepository produtoRepository;
     private final PedidoValidator pedidoValidator;
 
+    @Autowired
     public PedidoService(PedidoRepository pedidoRepository, ProdutoRepository produtoRepository) {
         this(pedidoRepository, produtoRepository, new PedidoValidator());
     }
@@ -38,15 +43,29 @@ public class PedidoService {
 
         Pedido pedido = new Pedido();
         pedido.setCliente(cliente);
-
-        for (ItemPedido item : itens) {
-            Produto produto = item.getProduto();
-            produto.debitarEstoque(item.getQuantidade());
-            produtoRepository.atualizarEstoque(produto.getId(), produto.getQuantidadeEstoque());
-            pedido.adicionarItem(item);
+        List<ItemPedido> debitados = new ArrayList<>();
+        try {
+            for (ItemPedido item : itens) {
+                Produto produto = produtoRepository.buscarPorId(item.getProduto().getId())
+                        .orElseThrow(() -> new RegraNegocioException("Produto nao encontrado."));
+                if (!produto.isAtivo()) {
+                    throw new RegraNegocioException("Produto inativo nao pode ser vendido: " + produto.getNome());
+                }
+                if (!produtoRepository.debitarEstoque(produto.getId(), item.getQuantidade())) {
+                    throw new RegraNegocioException("Estoque insuficiente para o produto: " + produto.getNome());
+                }
+                debitados.add(new ItemPedido(produto, item.getQuantidade(), produto.getPreco()));
+            }
+            for (ItemPedido item : debitados) {
+                pedido.adicionarItem(item);
+            }
+            return pedidoRepository.salvar(pedido);
+        } catch (RuntimeException e) {
+            for (ItemPedido item : debitados) {
+                produtoRepository.estornarEstoque(item.getProduto().getId(), item.getQuantidade());
+            }
+            throw e;
         }
-
-        return pedidoRepository.salvar(pedido);
     }
 
     public void atualizarStatusPedido(Pedido pedido, StatusPedido novoStatus, Usuario usuarioResponsavel) {
@@ -67,14 +86,16 @@ public class PedidoService {
             );
         }
 
+        if (pedido.getId() > 0
+                && !pedidoRepository.atualizarStatus(pedido.getId(), statusAtual, novoStatus)) {
+            throw new RegraNegocioException("O pedido foi alterado por outra operação; atualize e tente novamente.");
+        }
+
         if (novoStatus == StatusPedido.CANCELADO) {
             estornarEstoqueItens(pedido);
         }
 
         pedido.setStatus(novoStatus);
-        if (pedido.getId() > 0) {
-            pedidoRepository.atualizarStatus(pedido.getId(), novoStatus);
-        }
     }
 
     public List<Pedido> listarTodos() {
@@ -88,8 +109,7 @@ public class PedidoService {
     private void estornarEstoqueItens(Pedido pedido) {
         for (ItemPedido item : pedido.getItens()) {
             Produto produto = item.getProduto();
-            produto.estornarEstoque(item.getQuantidade());
-            produtoRepository.atualizarEstoque(produto.getId(), produto.getQuantidadeEstoque());
+            produtoRepository.estornarEstoque(produto.getId(), item.getQuantidade());
         }
     }
 }

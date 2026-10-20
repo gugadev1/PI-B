@@ -14,4 +14,6 @@ public interface ProdutoRepository {
     Optional<Produto> buscarPorId(int id);
     List<Produto> listarTodos();
     boolean atualizarEstoque(int idProduto, int novaQuantidade);
+    boolean debitarEstoque(int idProduto, int quantidade);
+    boolean estornarEstoque(int idProduto, int quantidade);
 }

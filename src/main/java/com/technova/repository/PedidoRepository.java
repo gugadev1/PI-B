@@ -14,4 +14,5 @@ public interface PedidoRepository {
     List<Pedido> listarTodos();
     List<Pedido> listarPorCliente(int idCliente);
     boolean atualizarStatus(int idPedido, StatusPedido novoStatus);
+    boolean atualizarStatus(int idPedido, StatusPedido statusAtual, StatusPedido novoStatus);
 }

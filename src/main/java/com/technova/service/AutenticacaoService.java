@@ -4,11 +4,17 @@ import com.technova.domain.Usuario;
 import com.technova.exception.RegraNegocioException;
 import com.technova.exception.ValidacaoException;
 import com.technova.repository.UsuarioRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.context.annotation.Scope;
+import org.springframework.web.context.WebApplicationContext;
 
 /**
  * Servico responsavel exclusivamente pela autenticacao e sessao de usuarios (SRP).
  * Extraido de TechNovaDesktopUI.autenticarUsuario() para reutilizacao em ambiente Web.
  */
+@Service
+@Scope(value = WebApplicationContext.SCOPE_SESSION, proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class AutenticacaoService {
 
     private final UsuarioRepository usuarioRepository;
