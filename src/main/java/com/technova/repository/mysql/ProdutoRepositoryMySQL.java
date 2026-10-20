@@ -135,6 +135,34 @@ public class ProdutoRepositoryMySQL implements ProdutoRepository {
         }
     }
 
+    @Override
+    public boolean debitarEstoque(int idProduto, int quantidade) {
+        String sql = "UPDATE produtos SET quantidade_estoque = quantidade_estoque - ? "
+                + "WHERE id = ? AND quantidade_estoque >= ?";
+        try (Connection conexao = connectionFactory.obterConexao();
+             PreparedStatement ps = conexao.prepareStatement(sql)) {
+            ps.setInt(1, quantidade);
+            ps.setInt(2, idProduto);
+            ps.setInt(3, quantidade);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new PersistenciaException("Erro ao baixar estoque do produto.", e);
+        }
+    }
+
+    @Override
+    public boolean estornarEstoque(int idProduto, int quantidade) {
+        String sql = "UPDATE produtos SET quantidade_estoque = quantidade_estoque + ? WHERE id = ?";
+        try (Connection conexao = connectionFactory.obterConexao();
+             PreparedStatement ps = conexao.prepareStatement(sql)) {
+            ps.setInt(1, quantidade);
+            ps.setInt(2, idProduto);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new PersistenciaException("Erro ao estornar estoque do produto.", e);
+        }
+    }
+
     private void preencherParametrosProduto(PreparedStatement ps, Produto produto) throws SQLException {
         ps.setString(1, produto.getNome());
         ps.setString(2, produto.getDescricao());

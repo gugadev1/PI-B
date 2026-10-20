@@ -1,5 +1,7 @@
 package com.technova.domain;
 
+import com.technova.security.SenhaHasher;
+
 public class Usuario {
     private int id;
     private String nome;
@@ -19,7 +21,7 @@ public class Usuario {
     }
 
     public boolean verificarSenha(String senhaInformada) {
-        return senhaHash != null && senhaInformada != null && senhaHash.equals(senhaInformada);
+        return SenhaHasher.verificar(senhaInformada, senhaHash);
     }
 
     public int getId() {

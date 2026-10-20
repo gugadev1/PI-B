@@ -20,8 +20,13 @@ public class PedidoValidator {
             throw new ValidacaoException("Pedido deve conter ao menos um item.");
         }
 
+        double total = 0;
         for (ItemPedido item : itens) {
             validarItem(item);
+            total += item.getSubtotal();
+            if (!Double.isFinite(total) || total > 9_999_999_999.99) {
+                throw new ValidacaoException("O total do pedido excede o limite permitido.");
+            }
         }
     }
 
@@ -36,8 +41,9 @@ public class PedidoValidator {
         if (item.getQuantidade() <= 0) {
             throw new ValidacaoException("Quantidade do item deve ser maior que zero.");
         }
-        if (item.getPrecoUnitario() < 0) {
-            throw new ValidacaoException("Preco unitario do item nao pode ser negativo.");
+        if (!Double.isFinite(item.getPrecoUnitario()) || item.getPrecoUnitario() < 0
+                || !Double.isFinite(item.getSubtotal())) {
+            throw new ValidacaoException("Preco unitario do item deve ser finito e nao negativo.");
         }
         if (!produto.possuiEstoqueSuficiente(item.getQuantidade())) {
             throw new RegraNegocioException("Estoque insuficiente para o produto: " + produto.getNome());

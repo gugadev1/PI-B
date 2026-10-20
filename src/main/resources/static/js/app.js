@@ -3,7 +3,8 @@
 const DEMO_USERS = [
   { id: 1, name: "Administrador TechNova", email: "admin@technova.com", password: "admin123", role: "ADMINISTRADOR" },
   { id: 2, name: "Marina Oliveira", email: "vendas@technova.com", password: "vendas123", role: "FUNCIONARIO" },
-  { id: 3, name: "Cliente Balcão", email: "cliente.balcao@technova.com", password: "123456", role: "CLIENTE", clientId: 1 }
+  { id: 3, name: "Cliente Balcão", email: "cliente.balcao@technova.com", password: "123456", role: "CLIENTE", clientId: 1 },
+  { id: 4, name: "Bruno Lima", email: "bruno@email.com", password: "bruno123", role: "CLIENTE", clientId: 2 }
 ];
 
 const INITIAL_STATE = {
@@ -11,19 +12,11 @@ const INITIAL_STATE = {
   page: "login",
   message: null,
   productFormId: null,
-  products: [
-    { id: 1, name: "Notebook Pro 14", description: "Desempenho profissional em um design compacto.", category: "Notebooks", price: 6499.9, stock: 8, active: true },
-    { id: 2, name: "Mouse sem fio", description: "Conexão estável e bateria de longa duração.", category: "Periféricos", price: 129.9, stock: 40, active: true },
-    { id: 3, name: "Monitor 27” 4K", description: "Imagem nítida para trabalho e entretenimento.", category: "Monitores", price: 2199, stock: 5, active: true },
-    { id: 4, name: "Webcam HD", description: "Imagem em alta definição para reuniões.", category: "Periféricos", price: 189, stock: 12, active: false }
-  ],
-  clients: [
-    { id: 1, name: "Cliente Balcão", email: "cliente.balcao@technova.com", phone: "(51) 99999-0000" },
-    { id: 2, name: "Bruno Lima", email: "bruno@email.com", phone: "(51) 99999-0002" }
-  ],
+  products: [],
+  clients: [],
   cart: [],
   orders: [],
-  nextIds: { product: 5, client: 3, order: 1 }
+  nextIds: {}
 };
 
 const NEXT_STATUS = {
@@ -50,6 +43,7 @@ const STATUS_CLASSES = {
 
 const state = structuredClone(INITIAL_STATE);
 const application = document.querySelector("#application");
+const API = "/api";
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" });
 
@@ -87,13 +81,13 @@ function loginPage() {
           <h1>Tecnologia para fazer melhor.</h1>
           <p>Consulte produtos, organize pedidos e acompanhe cada etapa da operação TechNova.</p>
         </div>
-        <p class="login-footnote">Protótipo acadêmico · ambiente sem conexão com servidor</p>
+        <p class="login-footnote">Sistema integrado TechNova</p>
       </aside>
       <main class="login-panel">
         <div class="login-content">
           <p class="eyebrow">Acesso ao sistema</p>
           <h2>Bem-vindo(a)</h2>
-          <p>Entre com uma das contas demonstrativas para explorar os fluxos do protótipo.</p>
+          <p>Entre com sua conta para acessar o catálogo e acompanhar os pedidos.</p>
           ${feedbackMarkup()}
           <form id="login-form" class="login-form" novalidate>
             <div class="field">
@@ -107,7 +101,7 @@ function loginPage() {
             <button class="button button-primary" type="submit">Entrar <span aria-hidden="true">→</span></button>
           </form>
           <section class="demo-accounts" aria-labelledby="demo-title">
-            <p id="demo-title">Acesso rápido às contas de demonstração</p>
+            <p id="demo-title">Contas iniciais para acesso</p>
             <div class="demo-account-list">
               ${DEMO_USERS.map((user) => `
                 <button class="demo-account" type="button" data-action="fill-login" data-user-id="${user.id}">
@@ -115,7 +109,7 @@ function loginPage() {
                   <em>Usar conta</em>
                 </button>`).join("")}
             </div>
-            <p class="field-hint demo-footnote">As senhas de demonstração são exibidas no README do projeto.</p>
+            <p class="field-hint demo-footnote">Altere as senhas iniciais antes de publicar em produção.</p>
           </section>
         </div>
       </main>
@@ -150,7 +144,7 @@ function shell(content) {
       ${feedbackMarkup()}
       ${content}
     </main>
-    <footer class="site-footer">TechNova · Protótipo de interface · Os dados existem apenas nesta sessão do navegador.</footer>`;
+    <footer class="site-footer">TechNova · Gestão integrada de produtos, clientes e pedidos.</footer>`;
 }
 
 function pageHeading(title, description, eyebrow, action = "") {
@@ -215,7 +209,8 @@ function clientsPage() {
         <div class="field-grid">
           <div class="field"><label for="client-name">Nome completo *</label><input id="client-name" name="name" required maxlength="100" autocomplete="name"></div>
           <div class="field"><label for="client-email">E-mail *</label><input id="client-email" name="email" type="email" required maxlength="120" autocomplete="email"></div>
-          <div class="field"><label for="client-phone">Telefone</label><input id="client-phone" name="phone" type="tel" maxlength="20" autocomplete="tel" placeholder="(00) 00000-0000"></div>
+            <div class="field"><label for="client-password">Senha inicial *</label><input id="client-password" name="password" type="password" required minlength="8" maxlength="100" autocomplete="new-password"></div>
+            <div class="field"><label for="client-phone">Telefone *</label><input id="client-phone" name="phone" type="tel" required maxlength="20" autocomplete="tel" placeholder="(00) 00000-0000"></div>
         </div>
         <div class="form-actions"><button class="button button-primary" type="submit">Cadastrar cliente</button></div>
       </form>
@@ -247,7 +242,7 @@ function cartPage() {
         <div class="summary-total"><span>Total</span><span>${money.format(cartTotal())}</span></div>
         ${clientSelector}
         <button class="button button-primary" type="button" data-action="confirm-order">Confirmar pedido</button>
-        <p class="summary-note">Ao confirmar, o pedido começa em “Em processamento” e o estoque é atualizado nesta demonstração.</p>
+        <p class="summary-note">Ao confirmar, o pedido começa em “Em processamento” e o estoque é atualizado no banco.</p>
         <button class="button button-outline full-width spaced-top" type="button" data-action="navigate" data-page="products">Continuar comprando</button>
       </aside>
     </div>`;
@@ -261,7 +256,7 @@ function ordersPage() {
     return `<article class="card order-card" data-order-status="${order.status}">
       <div class="order-header"><div><h2 class="order-title">Pedido #${order.id}</h2><p class="order-date">${dateTime.format(new Date(order.createdAt))}</p></div><span class="status-pill ${STATUS_CLASSES[order.status]}">${STATUS_LABELS[order.status]}</span></div>
       <div class="order-body"><div class="order-items">${order.items.map((item) => `<span>${item.quantity} × ${escapeHtml(item.name)} <span class="cart-product-meta">(${money.format(item.price)})</span></span>`).join("")}</div><div class="order-total"><span>Total do pedido</span>${money.format(order.total)}</div></div>
-      <div class="order-footer"><span class="order-client">Cliente: ${escapeHtml(client?.name ?? "Cadastro indisponível")}</span><div class="order-actions">
+      <div class="order-footer"><span class="order-client">Cliente: ${escapeHtml(order.clientName ?? client?.name ?? "Cadastro indisponível")}</span><div class="order-actions">
         ${isAdmin() && nextStatus ? `<button class="button button-outline button-small" type="button" data-action="advance-order" data-order-id="${order.id}">Avançar para ${STATUS_LABELS[nextStatus]}</button>` : ""}
         ${isAdmin() && ["EM_PROCESSAMENTO", "APROVADO"].includes(order.status) ? `<button class="button button-danger button-small" type="button" data-action="cancel-order" data-order-id="${order.id}">Cancelar e devolver estoque</button>` : ""}
       </div></div>
@@ -295,25 +290,49 @@ function navigate(page) {
   document.querySelector("#main-content h1")?.focus();
 }
 
-function login(form) {
+async function api(path, options = {}) {
+  const headers = { ...(options.body ? { "Content-Type": "application/json" } : {}), ...options.headers };
+  const response = await fetch(`${API}${path}`, { ...options, headers, credentials: "same-origin" });
+  const data = response.status === 204 ? null : await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.error || "Não foi possível concluir a operação.");
+  return data;
+}
+
+async function atualizarDados() {
+  const result = await api("/session");
+  state.user = result.user ?? null;
+  if (!state.user) return;
+  const requests = [
+    api("/products"),
+    api("/orders"),
+    isStaff() ? api("/clients") : Promise.resolve([])
+  ];
+  [state.products, state.orders, state.clients] = await Promise.all(requests);
+}
+
+async function executarComFeedback(action) {
+  try {
+    await action();
+  } catch (error) {
+    notify(error.message || "Não foi possível concluir a operação.", "error");
+  }
+}
+
+async function login(form) {
   const email = form.elements.email.value.trim().toLocaleLowerCase("pt-BR");
   const password = form.elements.password.value;
   if (!email || !password) {
     notify("Informe e-mail e senha.", "error");
     return;
   }
-  const user = DEMO_USERS.find((candidate) => candidate.email.toLocaleLowerCase("pt-BR") === email && candidate.password === password);
-  if (!user) {
-    notify("Credenciais inválidas. Use uma das contas de demonstração.", "error");
-    return;
-  }
-  state.user = user;
+  await api("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+  await atualizarDados();
   state.page = "products";
-  state.message = { text: `Bem-vindo(a), ${user.name}.`, kind: "success" };
+  state.message = { text: `Bem-vindo(a), ${state.user.name}.`, kind: "success" };
   render();
 }
 
-function saveProduct(form) {
+async function saveProduct(form) {
   const name = form.elements.name.value.trim();
   const category = form.elements.category.value.trim();
   const price = Number(form.elements.price.value);
@@ -333,33 +352,32 @@ function saveProduct(form) {
     notify(`O estoque não pode ficar abaixo das ${cartQuantity(productId)} unidade(s) já reservadas no carrinho.`, "error");
     return;
   }
-  if (existing) {
-    Object.assign(existing, { name, category, price, stock, description });
-  } else {
-    state.products.push({ id: state.nextIds.product++, name, category, price, stock, description, active: true });
-  }
+  const body = JSON.stringify({ name, category, price, stock, description });
+  const saved = existing
+    ? await api(`/products/${existing.id}`, { method: "PUT", body })
+    : await api("/products", { method: "POST", body });
+  state.products = state.products.filter((product) => product.id !== saved.id);
+  state.products.push(saved);
   state.productFormId = null;
   state.message = { text: existing ? "Produto atualizado." : "Produto cadastrado.", kind: "success" };
   render();
 }
 
-function saveClient(form) {
+async function saveClient(form) {
   const name = form.elements.name.value.trim();
   const email = form.elements.email.value.trim().toLocaleLowerCase("pt-BR");
+  const password = form.elements.password.value;
   const phone = form.elements.phone.value.trim();
-  if (!name || !email) {
-    notify("Nome e e-mail são obrigatórios.", "error");
+  if (!name || !email || !phone || password.length < 8) {
+    notify("Informe nome, e-mail, telefone e uma senha com pelo menos 8 caracteres.", "error");
     return;
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     notify("Informe um e-mail válido.", "error");
     return;
   }
-  if (state.clients.some((client) => client.email.toLocaleLowerCase("pt-BR") === email)) {
-    notify("Já existe um cliente cadastrado com esse e-mail.", "error");
-    return;
-  }
-  state.clients.push({ id: state.nextIds.client++, name, email, phone });
+  await api("/clients", { method: "POST", body: JSON.stringify({ name, email, password, phone }) });
+  state.clients = await api("/clients");
   state.message = { text: "Cliente cadastrado com sucesso.", kind: "success" };
   render();
 }
@@ -399,13 +417,13 @@ function changeCartQuantity(input) {
   render();
 }
 
-function confirmOrder() {
+async function confirmOrder() {
   if (!state.cart.length) {
     notify("O carrinho está vazio.", "error");
     return;
   }
   const clientId = isStaff() ? Number(document.querySelector("#order-client")?.value) : state.user.clientId;
-  if (!clientId || !clientById(clientId)) {
+  if (!clientId || (isStaff() && !clientById(clientId))) {
     notify("Selecione um cliente válido para o pedido.", "error");
     document.querySelector("#order-client")?.focus();
     return;
@@ -417,20 +435,22 @@ function confirmOrder() {
       return;
     }
   }
-  const items = state.cart.map((line) => {
-    const product = productById(line.productId);
-    product.stock -= line.quantity;
-    return { productId: product.id, name: product.name, quantity: line.quantity, price: product.price };
+  const pedido = await api("/orders", {
+    method: "POST",
+    body: JSON.stringify({
+      clientId,
+      items: state.cart.map((line) => ({ productId: line.productId, quantity: line.quantity }))
+    })
   });
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  state.orders.unshift({ id: state.nextIds.order++, clientId, items, total, status: "EM_PROCESSAMENTO", createdAt: new Date().toISOString() });
+  state.orders.unshift(pedido);
+  state.products = await api("/products");
   state.cart = [];
   state.page = "orders";
-  state.message = { text: "Pedido confirmado em processamento. O estoque foi atualizado nesta sessão.", kind: "success" };
+  state.message = { text: "Pedido confirmado em processamento. O estoque foi atualizado no banco.", kind: "success" };
   render();
 }
 
-function advanceOrder(orderId) {
+async function advanceOrder(orderId) {
   if (!isAdmin()) {
     notify("Apenas administradores podem alterar o status dos pedidos.", "error");
     return;
@@ -441,12 +461,16 @@ function advanceOrder(orderId) {
     notify("Esta transição de status não é permitida.", "error");
     return;
   }
-  order.status = nextStatus;
+  await api(`/orders/${order.id}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ status: nextStatus })
+  });
+  state.orders = await api("/orders");
   state.message = { text: `Pedido #${order.id} atualizado para ${STATUS_LABELS[nextStatus]}.`, kind: "success" };
   render();
 }
 
-function cancelOrder(orderId) {
+async function cancelOrder(orderId) {
   if (!isAdmin()) {
     notify("Apenas administradores podem cancelar pedidos.", "error");
     return;
@@ -457,11 +481,12 @@ function cancelOrder(orderId) {
     return;
   }
   if (!window.confirm(`Cancelar o pedido #${order.id} e devolver os itens ao estoque?`)) return;
-  order.items.forEach((item) => {
-    const product = productById(item.productId);
-    if (product) product.stock += item.quantity;
+  await api(`/orders/${order.id}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ status: "CANCELADO" })
   });
-  order.status = "CANCELADO";
+  state.orders = await api("/orders");
+  state.products = await api("/products");
   state.message = { text: `Pedido #${order.id} cancelado e estoque devolvido.`, kind: "success" };
   render();
 }
@@ -491,7 +516,7 @@ function filterOrders() {
   if (empty) empty.hidden = visible > 0;
 }
 
-function onClick(event) {
+async function onClick(event) {
   const button = event.target.closest("[data-action]");
   if (!button) return;
   const action = button.dataset.action;
@@ -507,9 +532,13 @@ function onClick(event) {
     }
     case "navigate": navigate(button.dataset.page); break;
     case "logout":
+      await api("/auth/logout", { method: "POST" });
       state.user = null;
       state.page = "login";
       state.cart = [];
+      state.products = [];
+      state.clients = [];
+      state.orders = [];
       state.productFormId = null;
       state.message = null;
       render();
@@ -536,24 +565,29 @@ function onClick(event) {
       if (!isAdmin()) return notify("Apenas administradores podem ativar ou inativar produtos.", "error");
       const product = productById(productId);
       if (!product) return notify("Produto não encontrado.", "error");
-      product.active = !product.active;
-      state.message = { text: `Produto ${product.active ? "ativado" : "inativado"}.`, kind: "success" };
+      const updated = await api(`/products/${productId}/active`, { method: "PATCH" });
+      state.products = state.products.map((item) => item.id === updated.id ? updated : item);
+      state.message = { text: `Produto ${updated.active ? "ativado" : "inativado"}.`, kind: "success" };
       render();
       break;
     }
-    case "confirm-order": confirmOrder(); break;
-    case "advance-order": advanceOrder(Number(button.dataset.orderId)); break;
-    case "cancel-order": cancelOrder(Number(button.dataset.orderId)); break;
+    case "confirm-order": await confirmOrder(); break;
+    case "advance-order": await advanceOrder(Number(button.dataset.orderId)); break;
+    case "cancel-order": await cancelOrder(Number(button.dataset.orderId)); break;
     default: break;
   }
 }
 
-application.addEventListener("click", onClick);
+application.addEventListener("click", (event) => {
+  void executarComFeedback(() => onClick(event));
+});
 application.addEventListener("submit", (event) => {
   event.preventDefault();
-  if (event.target.id === "login-form") login(event.target);
-  if (event.target.id === "product-form" && isStaff()) saveProduct(event.target);
-  if (event.target.id === "client-form" && isStaff()) saveClient(event.target);
+  void executarComFeedback(async () => {
+    if (event.target.id === "login-form") await login(event.target);
+    if (event.target.id === "product-form" && isStaff()) await saveProduct(event.target);
+    if (event.target.id === "client-form" && isStaff()) await saveClient(event.target);
+  });
 });
 application.addEventListener("input", (event) => {
   if (event.target.id === "product-search") filterProducts();
@@ -564,4 +598,7 @@ application.addEventListener("change", (event) => {
   if (event.target.matches("[data-cart-quantity]")) changeCartQuantity(event.target);
 });
 
-render();
+void executarComFeedback(async () => {
+  await atualizarDados();
+  render();
+});

@@ -20,8 +20,8 @@ public class ProdutoValidator implements Validador<Produto> {
         if (produto.getCategoria() == null || produto.getCategoria().isBlank()) {
             throw new ValidacaoException("Categoria do produto e obrigatoria.");
         }
-        if (produto.getPreco() < 0) {
-            throw new ValidacaoException("Preco do produto nao pode ser negativo.");
+        if (!Double.isFinite(produto.getPreco()) || produto.getPreco() < 0) {
+            throw new ValidacaoException("Preco do produto deve ser um numero finito nao negativo.");
         }
         if (produto.getQuantidadeEstoque() < 0) {
             throw new ValidacaoException("Quantidade em estoque nao pode ser negativa.");

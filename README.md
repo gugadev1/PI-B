@@ -1,46 +1,42 @@
-# TechNova Soluções - Projeto Refatorado (SOLID) para Reutilização Web
+# TechNova Soluções
 
-## Status do Projeto
-Concluído (Fase de Refatoração e Preparação para Arquitetura Web - PI2).
+Aplicação web Java 17 que integra o front-end existente a uma API Spring MVC e a um banco relacional. O núcleo de regras de negócio também continua disponível para a interface desktop e para os testes unitários.
 
-## Tecnologias e Padrões Aplicados
-- **Java 17** (Projeto Maven / Apache NetBeans)
-- **HTML, CSS e JavaScript** no protótipo web estático em `src/main/resources/static`
-- **Princípios SOLID** (SRP, OCP, LSP, ISP, DIP)
-- **Padrões de Projeto**: Repository/DAO, Dependency Injection, Strategy (Validação), Factory (`ConnectionFactory`)
-- **MySQL / JDBC** (desacoplado via interfaces de repositório)
-- **Java Swing** (camada visual desacoplada das regras de negócio)
+## Executar localmente
 
-## Autor
-- Gusthavo Gassen
+Requisitos: JDK 17 e Maven 3.6 ou superior.
 
-## Estrutura de Pacotes
-- `com.technova.domain`: Entidades de negócio (`Usuario`, `Cliente`, `Produto`, `Pedido`, `ItemPedido`) e enums (`PerfilUsuario`, `StatusPedido`) enriquecidos com regras de domínio.
-- `com.technova.validation`: Validadores dedicados (`Validador<T>`, `ProdutoValidator`, `ClienteValidator`, `PedidoValidator`).
-- `com.technova.repository`: Interfaces segregadas (`ProdutoRepository`, `ClienteRepository`, `PedidoRepository`, `UsuarioRepository`).
-- `com.technova.repository.memory`: Implementações em memória para execução de testes independentes de banco de dados.
-- `com.technova.repository.mysql`: Implementações JDBC/MySQL refatoradas com `ConnectionFactory`.
-- `com.technova.service`: Camada de serviços de negócio reutilizável no sistema Web (`AutenticacaoService`, `ProdutoService`, `ClienteService`, `CarrinhoService`, `PedidoService`).
-- `com.technova.exception`: Exceções de domínio e persistência (`RegraNegocioException`, `ValidacaoException`, `PersistenciaException`).
-- `com.technova.ui`: Interface gráfica `TechNovaDesktopUI` enxuta e desacoplada.
-- `com.technova.app`: Classe `TechNovaApp` com suíte de testes automatizados no método `main()`.
-- `src/main/resources/static`: protótipo web demonstrativo, sem dependências de bibliotecas ou conexão com back-end.
+```powershell
+mvn spring-boot:run
+```
 
-## Protótipo web
+Abra `http://localhost:8080`. A aplicação cria o banco H2 local em `data/technova.mv.db` e inicializa contas e catálogo de demonstração na primeira execução. Os dados permanecem entre reinicializações; remova o arquivo do banco somente se quiser reiniciar a demonstração.
 
-Abra `src/main/resources/static/index.html` diretamente no navegador. O protótipo contém login por perfil, catálogo e manutenção de produtos, cadastro de clientes, carrinho e acompanhamento de pedidos. Os dados são fictícios e mantidos apenas na memória da página; atualizar ou fechar a página reinicia a demonstração. Não há servidor web, persistência, autenticação real ou conexão com o banco de dados.
-
-Contas demonstrativas:
-
-| Perfil | E-mail | Senha |
+| Perfil | E-mail | Senha inicial |
 | --- | --- | --- |
 | Administrador | `admin@technova.com` | `admin123` |
 | Funcionário | `vendas@technova.com` | `vendas123` |
 | Cliente | `cliente.balcao@technova.com` | `123456` |
+| Cliente alternativo | `bruno@email.com` | `bruno123` |
 
-O administrador pode ativar/inativar produtos, atualizar o status e cancelar pedidos em processamento ou aprovados. Administradores e funcionários podem cadastrar/editar produtos e clientes e criar pedidos para um cliente selecionado. Clientes veem apenas o próprio histórico e não podem alterar pedidos. A confirmação reduz o estoque; um cancelamento autorizado devolve as quantidades.
+As contas são apenas para desenvolvimento e não devem ser expostas em produção. Senhas criadas pelo cadastro são armazenadas com PBKDF2. Para configurar a conexão, defina `TECHNOVA_DB_URL`, `TECHNOVA_DB_USER`, `TECHNOVA_DB_PASSWORD` e `TECHNOVA_DB_DRIVER`; o padrão local é H2. O esquema fornecido em `src/main/resources/schema.sql` é destinado ao H2.
 
-## Testes
-- Execute os testes unitários JUnit 5 com `mvn test`.
-- Consulte o [plano de testes](docs/plano_testes.md) para os cenários do núcleo de negócio, da persistência e dos fluxos web previstos.
-- A classe `com.technova.app.TechNovaApp` também contém verificações manuais executáveis via `mvn compile exec:java`; use `--ui` para abrir a interface Swing após a execução.
+## Funcionalidades e permissões
+
+- Administradores e funcionários podem consultar, cadastrar e editar produtos e clientes; somente administradores ativam/inativam produtos e alteram ou cancelam pedidos.
+- Clientes consultam apenas produtos ativos e o próprio histórico, e criam pedidos somente para o próprio cadastro.
+- Pedidos validam status, disponibilidade e quantidade; a baixa de estoque, os itens e o pedido são gravados dentro de uma transação. Cancelamentos permitidos estornam o estoque.
+- A sessão HTTP usa cookie `HttpOnly` e `SameSite=Lax`; os erros da API retornam códigos HTTP coerentes sem expor detalhes internos de persistência.
+
+## Organização
+
+- `com.technova.web`: controladores e tratamento de erros Spring MVC.
+- `com.technova.repository.jdbc`: implementação JDBC relacional usada pela aplicação.
+- `com.technova.repository.memory` e `com.technova.repository.mysql`: implementações existentes para testes e compatibilidade.
+- `com.technova.service`, `domain` e `validation`: regras de negócio e validações.
+- `src/main/resources/static`: interface HTML/CSS/JavaScript servida pelo Spring Boot e integrada à API `/api`.
+- `com.technova.app.TechNovaApp`: verificações manuais preexistentes do núcleo/desktop.
+
+## Testes e documentação
+
+Execute `mvn test` para os testes do núcleo e da API Spring MVC com H2 em memória. A aplicação também pode ser empacotada com `mvn package`. Os resultados dos casos do plano e as evidências de versionamento desta etapa estão em `docs/evidencias_testes.md` e `docs/evidencias_versionamento.md`; o plano atualizado está em `docs/plano_testes.md`.

@@ -65,4 +65,25 @@ public class ProdutoRepositoryMemoria implements ProdutoRepository {
         }
         return false;
     }
+
+    @Override
+    public synchronized boolean debitarEstoque(int idProduto, int quantidade) {
+        Optional<Produto> produtoOpt = buscarPorId(idProduto);
+        if (quantidade <= 0 || produtoOpt.isEmpty()
+                || !produtoOpt.get().possuiEstoqueSuficiente(quantidade)) {
+            return false;
+        }
+        produtoOpt.get().debitarEstoque(quantidade);
+        return true;
+    }
+
+    @Override
+    public synchronized boolean estornarEstoque(int idProduto, int quantidade) {
+        Optional<Produto> produtoOpt = buscarPorId(idProduto);
+        if (quantidade <= 0 || produtoOpt.isEmpty()) {
+            return false;
+        }
+        produtoOpt.get().estornarEstoque(quantidade);
+        return true;
+    }
 }

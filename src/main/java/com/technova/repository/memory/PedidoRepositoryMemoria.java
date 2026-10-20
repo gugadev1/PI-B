@@ -53,4 +53,14 @@ public class PedidoRepositoryMemoria implements PedidoRepository {
         }
         return false;
     }
+
+    @Override
+    public boolean atualizarStatus(int idPedido, StatusPedido statusAtual, StatusPedido novoStatus) {
+        Optional<Pedido> pedidoOpt = buscarPorId(idPedido);
+        if (pedidoOpt.isPresent() && pedidoOpt.get().getStatus() == statusAtual && novoStatus != null) {
+            pedidoOpt.get().setStatus(novoStatus);
+            return true;
+        }
+        return false;
+    }
 }
